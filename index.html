@@ -93,7 +93,7 @@ section.card{
 #splitPanel.show{display:block}
 .split-flex{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
 .split-canvas-wrap{position:relative;flex:1 1 320px;max-width:520px}
-#splitCanvas{width:100%;display:block;border-radius:10px;border:1px solid var(--line)}
+#splitCanvas{width:100%;display:block;border-radius:10px;border:1px solid var(--line);touch-action:none;cursor:crosshair}
 .split-controls{flex:1 1 240px;display:grid;gap:14px;align-content:start}
 .ctrl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .ctrl-row label{font-size:.85rem;font-weight:700;min-width:5.5em}
@@ -230,13 +230,16 @@ section.card{
           <div class="stepper"><button data-t="rows" data-d="-1" aria-label="行を減らす">−</button><span id="rowsVal">2</span><button data-t="rows" data-d="1" aria-label="行を増やす">＋</button></div>
         </div>
         <div class="ctrl-row" style="gap:8px">
+          <button class="btn ghost" id="resetLines">線を均等に戻す</button>
+        </div>
+        <div class="ctrl-row" style="gap:8px">
           <button class="btn" id="doSplit">✂ 分割してスタンプに追加</button>
         </div>
         <div class="ctrl-row">
           <button class="btn ghost" id="addWhole">分割せず1枚で追加</button>
         </div>
         <div class="ctrl-row" style="font-size:.78rem;color:var(--ink-soft)">
-          分割線はドラッグ不要、行・列を変えるだけ。追加後に各コマを個別調整できます。
+          緑の線をドラッグすると好きな位置で分割できます。等分にならないコマ割りにも対応。
         </div>
       </div>
     </div>
@@ -286,6 +289,9 @@ const SPEC = { stamp:{w:370,h:320}, main:{w:240,h:240}, tab:{w:96,h:74} };
 const VALID_COUNTS = [8,16,24,32,40];
 let sourceImg = null;          // 現在読み込み中の元画像 (HTMLImageElement)
 let grid = { rows:2, cols:2 };
+// 分割線の位置は 0〜1 の比率で保持(ドラッグで自由に動かせる)
+let linesX = [0.5];            // 縦線(列の境界)
+let linesY = [0.5];            // 横線(行の境界)
 let stamps = [];               // {id, src:canvas, opts:{bg,tol,margin}, out:canvas, bytes}
 let mainId = null;
 let uid = 0;
@@ -331,11 +337,26 @@ function fileToImage(file){
 function setSourceImage(img){
   sourceImg = img;
   $('#splitPanel').classList.add('show');
+  resetLinesEven();
   drawSplitPreview();
+}
+
+function evenPositions(n){
+  // n本の線を均等配置(境界のみ、0と1は含めない)
+  const arr = [];
+  for(let i=1;i<n;i++) arr.push(i/n);
+  return arr;
+}
+function resetLinesEven(){
+  linesX = evenPositions(grid.cols);
+  linesY = evenPositions(grid.rows);
 }
 
 /* ═══════════════ split preview ═══════════════ */
 const sc = $('#splitCanvas'), sctx = sc.getContext('2d');
+const HIT_PX = 14;   // ドラッグ判定の当たり幅(canvas実ピクセル)
+const MIN_GAP = 0.03; // 線同士・端との最小間隔(比率)
+
 function drawSplitPreview(){
   if(!sourceImg) return;
   const maxW = 900;
@@ -343,38 +364,130 @@ function drawSplitPreview(){
   sc.width  = Math.round(sourceImg.naturalWidth * scale);
   sc.height = Math.round(sourceImg.naturalHeight * scale);
   sctx.drawImage(sourceImg, 0, 0, sc.width, sc.height);
-  // grid lines
-  sctx.strokeStyle = 'rgba(6,199,85,.95)';
+
   sctx.setLineDash([10,7]);
   sctx.lineWidth = 3;
-  for(let c=1;c<grid.cols;c++){
-    const x = sc.width*c/grid.cols;
+  linesX.forEach((fx,i)=>{
+    const x = sc.width*fx;
+    const active = dragging && dragging.axis==='x' && dragging.idx===i;
+    sctx.strokeStyle = active ? '#049E44' : 'rgba(6,199,85,.95)';
     sctx.beginPath(); sctx.moveTo(x,0); sctx.lineTo(x,sc.height); sctx.stroke();
-  }
-  for(let r=1;r<grid.rows;r++){
-    const y = sc.height*r/grid.rows;
+  });
+  linesY.forEach((fy,i)=>{
+    const y = sc.height*fy;
+    const active = dragging && dragging.axis==='y' && dragging.idx===i;
+    sctx.strokeStyle = active ? '#049E44' : 'rgba(6,199,85,.95)';
     sctx.beginPath(); sctx.moveTo(0,y); sctx.lineTo(sc.width,y); sctx.stroke();
-  }
+  });
   sctx.setLineDash([]);
+  drawHandles();
 }
+
+function drawHandles(){
+  const r = 6;
+  sctx.fillStyle = '#fff';
+  sctx.strokeStyle = '#049E44';
+  sctx.lineWidth = 2;
+  linesX.forEach(fx=>{
+    const x = sc.width*fx, y = sc.height/2;
+    sctx.beginPath(); sctx.arc(x,y,r,0,Math.PI*2); sctx.fill(); sctx.stroke();
+  });
+  linesY.forEach(fy=>{
+    const y = sc.height*fy, x = sc.width/2;
+    sctx.beginPath(); sctx.arc(x,y,r,0,Math.PI*2); sctx.fill(); sctx.stroke();
+  });
+}
+
+function canvasPoint(e){
+  const rect = sc.getBoundingClientRect();
+  const cx = (e.clientX ?? e.touches?.[0]?.clientX) - rect.left;
+  const cy = (e.clientY ?? e.touches?.[0]?.clientY) - rect.top;
+  return {
+    x: cx * (sc.width/rect.width),
+    y: cy * (sc.height/rect.height)
+  };
+}
+
+let dragging = null; // {axis:'x'|'y', idx}
+
+function findLineNear(pt){
+  for(let i=0;i<linesX.length;i++){
+    if(Math.abs(pt.x - linesX[i]*sc.width) < HIT_PX) return {axis:'x', idx:i};
+  }
+  for(let i=0;i<linesY.length;i++){
+    if(Math.abs(pt.y - linesY[i]*sc.height) < HIT_PX) return {axis:'y', idx:i};
+  }
+  return null;
+}
+
+function clampLine(arr, idx, val){
+  const lo = idx===0 ? MIN_GAP : arr[idx-1] + MIN_GAP;
+  const hi = idx===arr.length-1 ? 1-MIN_GAP : arr[idx+1] - MIN_GAP;
+  return Math.min(Math.max(val, lo), hi);
+}
+
+sc.addEventListener('pointerdown', e=>{
+  const pt = canvasPoint(e);
+  const hit = findLineNear(pt);
+  if(hit){
+    dragging = hit;
+    sc.style.cursor = 'grabbing';
+    sc.setPointerCapture(e.pointerId);
+    drawSplitPreview();
+  }
+});
+sc.addEventListener('pointermove', e=>{
+  const pt = canvasPoint(e);
+  if(dragging){
+    const arr = dragging.axis==='x' ? linesX : linesY;
+    const size = dragging.axis==='x' ? sc.width : sc.height;
+    const raw = (dragging.axis==='x' ? pt.x : pt.y) / size;
+    arr[dragging.idx] = clampLine(arr, dragging.idx, raw);
+    drawSplitPreview();
+  } else {
+    sc.style.cursor = findLineNear(pt) ? 'grab' : 'crosshair';
+  }
+});
+window.addEventListener('pointerup', ()=>{ dragging=null; sc.style.cursor='crosshair'; if(sourceImg) drawSplitPreview(); });
 
 document.querySelectorAll('.stepper button').forEach(b=>{
   b.addEventListener('click', ()=>{
     const t=b.dataset.t, d=+b.dataset.d;
-    grid[t] = Math.min(6, Math.max(1, grid[t]+d));
+    const newCount = Math.min(6, Math.max(1, grid[t]+d));
+    if(newCount===grid[t]) return;
+    const arr = t==='cols' ? linesX : linesY;
+    if(newCount > grid[t]){
+      // 一番広い区間の中央に新しい線を追加(既存の線の位置は維持)
+      const bounds = [0, ...arr, 1];
+      let bestGap=-1, bestMid=0.5;
+      for(let i=0;i<bounds.length-1;i++){
+        const gap = bounds[i+1]-bounds[i];
+        if(gap>bestGap){ bestGap=gap; bestMid=(bounds[i]+bounds[i+1])/2; }
+      }
+      arr.push(bestMid); arr.sort((a,b)=>a-b);
+    } else {
+      arr.pop(); // 一番最後(右/下)の線を削除
+    }
+    grid[t] = newCount;
     $('#colsVal').textContent = grid.cols;
     $('#rowsVal').textContent = grid.rows;
     drawSplitPreview();
   });
 });
 
+$('#resetLines').addEventListener('click', ()=>{
+  resetLinesEven();
+  drawSplitPreview();
+});
+
 $('#doSplit').addEventListener('click', ()=>{
   if(!sourceImg) return;
   const W = sourceImg.naturalWidth, H = sourceImg.naturalHeight;
-  const cw = W/grid.cols, ch = H/grid.rows;
-  for(let r=0;r<grid.rows;r++){
-    for(let c=0;c<grid.cols;c++){
-      addStampFromRegion(sourceImg, c*cw, r*ch, cw, ch);
+  const xs = [0, ...[...linesX].sort((a,b)=>a-b), 1].map(f=>f*W);
+  const ys = [0, ...[...linesY].sort((a,b)=>a-b), 1].map(f=>f*H);
+  for(let r=0;r<ys.length-1;r++){
+    for(let c=0;c<xs.length-1;c++){
+      addStampFromRegion(sourceImg, xs[c], ys[r], xs[c+1]-xs[c], ys[r+1]-ys[r]);
     }
   }
   advanceQueue();
