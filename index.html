@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>スタンプ工房 — LINEスタンプ申請用画像メーカー</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F0F4EF;
+  --card:#FFFFFF;
+  --ink:#22332A;
+  --ink-soft:#5C7066;
+  --green:#06C755;
+  --green-deep:#049E44;
+  --sun:#FFC94D;
+  --coral:#FF6B5E;
+  --line:#D9E3DB;
+  --radius:18px;
+  --check1:#E9EFEA;
+  --check2:#F8FBF8;
+  font-size:15px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:"Noto Sans JP","Hiragino Sans","Yu Gothic",sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  min-height:100vh;
+  line-height:1.65;
+}
+h1,h2,h3,.display{font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Noto Sans JP",sans-serif}
+
+/* ── header ───────────────────────────── */
+header{
+  padding:26px 24px 18px;
+  max-width:1160px;margin:0 auto;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+}
+.logo-mark{
+  width:52px;height:46px;border-radius:14px;
+  background:var(--green);
+  position:relative;flex:none;
+  box-shadow:0 4px 0 var(--green-deep);
+}
+.logo-mark::after{
+  content:"";position:absolute;left:10px;bottom:-9px;
+  border:9px solid transparent;border-top-color:var(--green-deep);
+  border-left-width:5px;border-right-width:5px;
+}
+.logo-mark::before{
+  content:"✂";position:absolute;inset:0;display:grid;place-items:center;
+  color:#fff;font-size:22px;
+}
+header h1{font-size:1.55rem;font-weight:900;letter-spacing:.02em}
+header p{color:var(--ink-soft);font-size:.85rem;width:100%;margin-left:66px;margin-top:-6px}
+@media(max-width:640px){header p{margin-left:0}}
+
+main{max-width:1160px;margin:0 auto;padding:0 24px 90px;display:grid;gap:22px}
+
+/* ── step cards ───────────────────────── */
+section.card{
+  background:var(--card);border-radius:var(--radius);
+  border:1px solid var(--line);
+  padding:22px 24px;
+}
+.step-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.step-num{
+  flex:none;width:34px;height:34px;border-radius:50%;
+  background:var(--ink);color:#fff;font-weight:900;
+  display:grid;place-items:center;font-family:"Zen Maru Gothic",sans-serif;
+}
+.step-head h2{font-size:1.12rem;font-weight:900}
+.step-head .hint{color:var(--ink-soft);font-size:.8rem;margin-left:auto;text-align:right}
+
+/* ── dropzone ─────────────────────────── */
+#dropzone{
+  border:2px dashed var(--line);border-radius:14px;
+  padding:34px 20px;text-align:center;cursor:pointer;
+  transition:border-color .15s,background .15s;
+  background:
+    conic-gradient(var(--check1) 90deg,var(--check2) 90deg 180deg,var(--check1) 180deg 270deg,var(--check2) 270deg);
+  background-size:28px 28px;
+}
+#dropzone.drag{border-color:var(--green);background-color:#EAFBF1}
+#dropzone strong{font-size:1.05rem;font-family:"Zen Maru Gothic",sans-serif}
+#dropzone .sub{color:var(--ink-soft);font-size:.82rem;margin-top:4px}
+#fileInput{display:none}
+
+/* ── split panel ──────────────────────── */
+#splitPanel{display:none;margin-top:18px}
+#splitPanel.show{display:block}
+.split-flex{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+.split-canvas-wrap{position:relative;flex:1 1 320px;max-width:520px}
+#splitCanvas{width:100%;display:block;border-radius:10px;border:1px solid var(--line)}
+.split-controls{flex:1 1 240px;display:grid;gap:14px;align-content:start}
+.ctrl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ctrl-row label{font-size:.85rem;font-weight:700;min-width:5.5em}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stepper button{
+  width:34px;height:34px;border:none;background:#F4F8F4;cursor:pointer;
+  font-size:1.1rem;font-weight:700;color:var(--ink);
+}
+.stepper button:hover{background:#E6F3EA}
+.stepper span{width:38px;text-align:center;font-weight:700}
+
+/* ── buttons ──────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;gap:8px;justify-content:center;
+  border:none;border-radius:12px;cursor:pointer;
+  font-family:"Zen Maru Gothic","Noto Sans JP",sans-serif;
+  font-weight:700;font-size:.95rem;padding:11px 20px;
+  color:#fff;background:var(--green);
+  box-shadow:0 3px 0 var(--green-deep);
+  transition:transform .08s;
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--green-deep)}
+.btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line);box-shadow:0 3px 0 var(--line)}
+.btn.warn{background:var(--coral);box-shadow:0 3px 0 #D14A3E}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn:focus-visible,.stepper button:focus-visible,#dropzone:focus-visible{outline:3px solid #7FD9A6;outline-offset:2px}
+
+/* ── stamp sheet (signature) ──────────── */
+#sheet{
+  display:grid;gap:18px;
+  grid-template-columns:repeat(auto-fill,minmax(215px,1fr));
+}
+.stamp-card{
+  background:#fff;border:1px solid var(--line);border-radius:16px;
+  padding:12px;display:grid;gap:10px;position:relative;
+}
+.stamp-card.is-main{border:2px solid var(--sun)}
+.badge-main{
+  position:absolute;top:-11px;left:12px;background:var(--sun);color:#5A4300;
+  font-size:.7rem;font-weight:900;border-radius:999px;padding:2px 10px;
+  font-family:"Zen Maru Gothic",sans-serif;z-index:2;
+}
+.stamp-preview{
+  aspect-ratio:370/320;border-radius:10px;overflow:hidden;
+  background:
+    conic-gradient(var(--check1) 90deg,var(--check2) 90deg 180deg,var(--check1) 180deg 270deg,var(--check2) 270deg);
+  background-size:20px 20px;
+  display:grid;place-items:center;
+  border:1px solid var(--line);
+}
+.stamp-preview img{max-width:100%;max-height:100%;display:block}
+.stamp-tools{display:grid;gap:8px;font-size:.78rem}
+.tool-row{display:flex;align-items:center;gap:8px}
+.tool-row label{flex:none;font-weight:700;color:var(--ink-soft);width:4.5em}
+.tool-row input[type=range]{flex:1;accent-color:var(--green)}
+.tool-row output{width:2.6em;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
+.switch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;color:var(--ink-soft)}
+.switch input{accent-color:var(--green);width:16px;height:16px}
+.mini-actions{display:flex;gap:6px;flex-wrap:wrap}
+.mini-btn{
+  flex:1;border:1px solid var(--line);background:#F7FAF7;border-radius:9px;
+  padding:6px 4px;font-size:.74rem;font-weight:700;cursor:pointer;color:var(--ink);
+  font-family:"Noto Sans JP",sans-serif;min-width:52px;
+}
+.mini-btn:hover{background:#EAF6EE}
+.mini-btn.danger{color:var(--coral)}
+.stamp-size{font-size:.7rem;color:var(--ink-soft);text-align:center}
+
+#emptySheet{
+  border:2px dashed var(--line);border-radius:14px;padding:40px;
+  text-align:center;color:var(--ink-soft);grid-column:1/-1;
+  font-family:"Zen Maru Gothic",sans-serif;font-weight:700;
+}
+
+/* ── export ───────────────────────────── */
+.export-flex{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+#checklist{flex:1 1 300px;display:grid;gap:8px;font-size:.88rem}
+.check-item{display:flex;gap:10px;align-items:flex-start}
+.check-item .mark{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;font-weight:900;color:#fff}
+.check-item.ok .mark{background:var(--green)}
+.check-item.ng .mark{background:var(--coral)}
+.check-item.warn2 .mark{background:var(--sun);color:#5A4300}
+.export-side{flex:1 1 260px;display:grid;gap:12px}
+.preview-duo{display:flex;gap:14px}
+.pv{flex:1;text-align:center;font-size:.75rem;color:var(--ink-soft)}
+.pv .box{
+  aspect-ratio:1;border-radius:10px;border:1px solid var(--line);
+  background:conic-gradient(var(--check1) 90deg,var(--check2) 90deg 180deg,var(--check1) 180deg 270deg,var(--check2) 270deg);
+  background-size:18px 18px;display:grid;place-items:center;margin-bottom:4px;
+}
+.pv .box img{max-width:85%;max-height:85%}
+#zipStatus{font-size:.82rem;color:var(--ink-soft);min-height:1.4em}
+
+/* ── info footer ──────────────────────── */
+.specs{font-size:.8rem;color:var(--ink-soft);border-top:1px dashed var(--line);margin-top:16px;padding-top:12px}
+.specs b{color:var(--ink)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark" aria-hidden="true"></div>
+  <h1>スタンプ工房</h1>
+  <p>1枚の画像から切り抜き・透過・リサイズ。LINE Creators Market 申請用ZIPまで一気に作成。</p>
+</header>
+
+<main>
+
+<!-- STEP 1 -->
+<section class="card">
+  <div class="step-head">
+    <div class="step-num">1</div>
+    <h2>画像を読み込む</h2>
+    <div class="hint">4コマまとめ画像OK。複数ファイルも一度に読めます</div>
+  </div>
+  <div id="dropzone" tabindex="0" role="button" aria-label="画像をアップロード">
+    <strong>ここに画像をドロップ / クリックして選択</strong>
+    <div class="sub">PNG・JPG・WebP対応。背景が単色(白など)だと透過がきれいに決まります</div>
+  </div>
+  <input type="file" id="fileInput" accept="image/*" multiple>
+
+  <div id="splitPanel">
+    <div class="split-flex">
+      <div class="split-canvas-wrap"><canvas id="splitCanvas"></canvas></div>
+      <div class="split-controls">
+        <div class="ctrl-row">
+          <label>よこ分割</label>
+          <div class="stepper"><button data-t="cols" data-d="-1" aria-label="列を減らす">−</button><span id="colsVal">2</span><button data-t="cols" data-d="1" aria-label="列を増やす">＋</button></div>
+        </div>
+        <div class="ctrl-row">
+          <label>たて分割</label>
+          <div class="stepper"><button data-t="rows" data-d="-1" aria-label="行を減らす">−</button><span id="rowsVal">2</span><button data-t="rows" data-d="1" aria-label="行を増やす">＋</button></div>
+        </div>
+        <div class="ctrl-row" style="gap:8px">
+          <button class="btn" id="doSplit">✂ 分割してスタンプに追加</button>
+        </div>
+        <div class="ctrl-row">
+          <button class="btn ghost" id="addWhole">分割せず1枚で追加</button>
+        </div>
+        <div class="ctrl-row" style="font-size:.78rem;color:var(--ink-soft)">
+          分割線はドラッグ不要、行・列を変えるだけ。追加後に各コマを個別調整できます。
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STEP 2 -->
+<section class="card">
+  <div class="step-head">
+    <div class="step-num">2</div>
+    <h2>スタンプを整える</h2>
+    <div class="hint">各コマ:背景透過 → 自動トリミング → 余白付き370×320に整形</div>
+  </div>
+  <div id="sheet">
+    <div id="emptySheet">まだスタンプがありません。<br>画像を読み込んで分割してみましょう 🐣</div>
+  </div>
+</section>
+
+<!-- STEP 3 -->
+<section class="card">
+  <div class="step-head">
+    <div class="step-num">3</div>
+    <h2>申請用ZIPを書き出す</h2>
+    <div class="hint">main.png / tab.png / 01.png〜 の形式で保存されます</div>
+  </div>
+  <div class="export-flex">
+    <div id="checklist"></div>
+    <div class="export-side">
+      <div class="preview-duo">
+        <div class="pv"><div class="box" id="mainPv"></div>main.png (240×240)</div>
+        <div class="pv"><div class="box" id="tabPv"></div>tab.png (96×74)</div>
+      </div>
+      <button class="btn" id="exportBtn">📦 申請用ZIPをダウンロード</button>
+      <div id="zipStatus"></div>
+    </div>
+  </div>
+  <div class="specs">
+    <b>LINEスタンプの主な規定:</b> スタンプ画像 最大W370×H320px・PNG・背景透過・余白10px程度推奨/メイン画像 W240×H240px/タブ画像 W96×H74px/セット個数 8・16・24・32・40個/各ファイル1MB以下・ZIP全体20MB以下・解像度72dpi以上。最新の規定は LINE Creators Market の公式ガイドラインをご確認ください。
+  </div>
+</section>
+
+</main>
+
+<script>
+/* ═══════════════ state ═══════════════ */
+const SPEC = { stamp:{w:370,h:320}, main:{w:240,h:240}, tab:{w:96,h:74} };
+const VALID_COUNTS = [8,16,24,32,40];
+let sourceImg = null;          // 現在読み込み中の元画像 (HTMLImageElement)
+let grid = { rows:2, cols:2 };
+let stamps = [];               // {id, src:canvas, opts:{bg,tol,margin}, out:canvas, bytes}
+let mainId = null;
+let uid = 0;
+
+const $ = s => document.querySelector(s);
+
+/* ═══════════════ upload ═══════════════ */
+const dz = $('#dropzone'), fi = $('#fileInput');
+dz.addEventListener('click', ()=>fi.click());
+dz.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();fi.click();} });
+['dragover','dragenter'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('drag');}));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('drag');}));
+dz.addEventListener('drop', e=>loadFiles(e.dataTransfer.files));
+fi.addEventListener('change', e=>{loadFiles(e.target.files); fi.value='';});
+
+function loadFiles(files){
+  const imgs = [...files].filter(f=>f.type.startsWith('image/'));
+  if(!imgs.length) return;
+  // 最初の1枚を分割パネルへ。2枚目以降は自動でキューに(順に読み込み)
+  let chain = Promise.resolve();
+  imgs.forEach((f,i)=>{
+    chain = chain.then(()=>fileToImage(f)).then(img=>{
+      if(i===0){ setSourceImage(img); }
+      else { pendingImages.push(img); updateSplitHint(); }
+    });
+  });
+}
+const pendingImages = [];
+function updateSplitHint(){
+  const el = $('#splitPanel .split-controls .ctrl-row:last-child');
+  if(pendingImages.length) el.innerHTML = `残り <b>${pendingImages.length}枚</b> の画像が待機中。追加すると次の画像が表示されます。`;
+}
+
+function fileToImage(file){
+  return new Promise((res,rej)=>{
+    const img = new Image();
+    img.onload = ()=>res(img);
+    img.onerror = rej;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function setSourceImage(img){
+  sourceImg = img;
+  $('#splitPanel').classList.add('show');
+  drawSplitPreview();
+}
+
+/* ═══════════════ split preview ═══════════════ */
+const sc = $('#splitCanvas'), sctx = sc.getContext('2d');
+function drawSplitPreview(){
+  if(!sourceImg) return;
+  const maxW = 900;
+  const scale = Math.min(1, maxW / sourceImg.naturalWidth);
+  sc.width  = Math.round(sourceImg.naturalWidth * scale);
+  sc.height = Math.round(sourceImg.naturalHeight * scale);
+  sctx.drawImage(sourceImg, 0, 0, sc.width, sc.height);
+  // grid lines
+  sctx.strokeStyle = 'rgba(6,199,85,.95)';
+  sctx.setLineDash([10,7]);
+  sctx.lineWidth = 3;
+  for(let c=1;c<grid.cols;c++){
+    const x = sc.width*c/grid.cols;
+    sctx.beginPath(); sctx.moveTo(x,0); sctx.lineTo(x,sc.height); sctx.stroke();
+  }
+  for(let r=1;r<grid.rows;r++){
+    const y = sc.height*r/grid.rows;
+    sctx.beginPath(); sctx.moveTo(0,y); sctx.lineTo(sc.width,y); sctx.stroke();
+  }
+  sctx.setLineDash([]);
+}
+
+document.querySelectorAll('.stepper button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    const t=b.dataset.t, d=+b.dataset.d;
+    grid[t] = Math.min(6, Math.max(1, grid[t]+d));
+    $('#colsVal').textContent = grid.cols;
+    $('#rowsVal').textContent = grid.rows;
+    drawSplitPreview();
+  });
+});
+
+$('#doSplit').addEventListener('click', ()=>{
+  if(!sourceImg) return;
+  const W = sourceImg.naturalWidth, H = sourceImg.naturalHeight;
+  const cw = W/grid.cols, ch = H/grid.rows;
+  for(let r=0;r<grid.rows;r++){
+    for(let c=0;c<grid.cols;c++){
+      addStampFromRegion(sourceImg, c*cw, r*ch, cw, ch);
+    }
+  }
+  advanceQueue();
+});
+$('#addWhole').addEventListener('click', ()=>{
+  if(!sourceImg) return;
+  addStampFromRegion(sourceImg, 0, 0, sourceImg.naturalWidth, sourceImg.naturalHeight);
+  advanceQueue();
+});
+function advanceQueue(){
+  if(pendingImages.length){ setSourceImage(pendingImages.shift()); updateSplitHint(); }
+  renderSheet(); refreshExport();
+}
+
+/* ═══════════════ stamp creation ═══════════════ */
+function addStampFromRegion(img, sx, sy, sw, sh){
+  // 処理コストを抑えるため、コマは長辺1200pxまでに縮小して取り込む
+  const cap = 1200;
+  const sc2 = Math.min(1, cap/Math.max(sw,sh));
+  const c = document.createElement('canvas');
+  c.width = Math.max(2, Math.round(sw*sc2));
+  c.height = Math.max(2, Math.round(sh*sc2));
+  c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  const st = { id:++uid, src:c, opts:{bg:true, tol:38, margin:10}, out:null, bytes:0 };
+  stamps.push(st);
+  if(mainId===null) mainId = st.id;
+  processStamp(st);
+}
+
+/* ═══════════════ image processing ═══════════════ */
+function processStamp(st){
+  const {bg, tol, margin} = st.opts;
+  const src = st.src;
+  const w = src.width, h = src.height;
+  const work = document.createElement('canvas');
+  work.width=w; work.height=h;
+  const ctx = work.getContext('2d', {willReadFrequently:true});
+  ctx.drawImage(src,0,0);
+  const id = ctx.getImageData(0,0,w,h);
+
+  if(bg) removeBackground(id, w, h, tol);
+
+  // trim to alpha bounding box
+  const box = alphaBounds(id, w, h);
+  ctx.putImageData(id,0,0);
+
+  const out = document.createElement('canvas');
+  out.width = SPEC.stamp.w; out.height = SPEC.stamp.h;
+  const octx = out.getContext('2d');
+  if(box){
+    const availW = SPEC.stamp.w - margin*2, availH = SPEC.stamp.h - margin*2;
+    const s = Math.min(availW/box.w, availH/box.h);
+    const dw = box.w*s, dh = box.h*s;
+    octx.imageSmoothingQuality = 'high';
+    octx.drawImage(work, box.x, box.y, box.w, box.h,
+      (SPEC.stamp.w-dw)/2, (SPEC.stamp.h-dh)/2, dw, dh);
+  }
+  st.out = out;
+  st.dataUrl = out.toDataURL('image/png');
+  st.bytes = Math.round(st.dataUrl.length*3/4);
+}
+
+/* 端からの塗りつぶしで背景を除去(境界は1pxフェザー) */
+function removeBackground(id, w, h, tol){
+  const d = id.data;
+  // 参照色 = 四辺のピクセルの平均
+  let r=0,g=0,b=0,n=0;
+  const sampleAt = i=>{ r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++; };
+  for(let x=0;x<w;x++){ sampleAt(x*4); sampleAt(((h-1)*w+x)*4); }
+  for(let y=0;y<h;y++){ sampleAt(y*w*4); sampleAt((y*w+w-1)*4); }
+  r/=n; g/=n; b/=n;
+  const tol2 = tol*tol*3;
+  const match = i=>{
+    const dr=d[i]-r, dg=d[i+1]-g, db=d[i+2]-b;
+    return dr*dr+dg*dg+db*db <= tol2;
+  };
+  const visited = new Uint8Array(w*h);
+  const queue = [];
+  for(let x=0;x<w;x++){ queue.push(x, (h-1)*w+x); }
+  for(let y=0;y<h;y++){ queue.push(y*w, y*w+w-1); }
+  while(queue.length){
+    const p = queue.pop();
+    if(visited[p]) continue;
+    visited[p]=1;
+    if(!match(p*4)) continue;
+    d[p*4+3]=0;
+    const x=p%w, y=(p/w)|0;
+    if(x>0) queue.push(p-1);
+    if(x<w-1) queue.push(p+1);
+    if(y>0) queue.push(p-w);
+    if(y<h-1) queue.push(p+w);
+  }
+  // 1px feather: 透明に接する不透明ピクセルのアルファを弱める
+  const alpha = new Uint8Array(w*h);
+  for(let p=0;p<w*h;p++) alpha[p]=d[p*4+3];
+  for(let y=1;y<h-1;y++){
+    for(let x=1;x<w-1;x++){
+      const p=y*w+x;
+      if(alpha[p]===0) continue;
+      let t=0;
+      if(alpha[p-1]===0)t++; if(alpha[p+1]===0)t++;
+      if(alpha[p-w]===0)t++; if(alpha[p+w]===0)t++;
+      if(t>=1) d[p*4+3] = Math.round(alpha[p]*(1 - t*0.18));
+    }
+  }
+}
+
+function alphaBounds(id, w, h){
+  const d = id.data;
+  let minX=w, minY=h, maxX=-1, maxY=-1;
+  for(let y=0;y<h;y++){
+    for(let x=0;x<w;x++){
+      if(d[(y*w+x)*4+3] > 8){
+        if(x<minX)minX=x; if(x>maxX)maxX=x;
+        if(y<minY)minY=y; if(y>maxY)maxY=y;
+      }
+    }
+  }
+  if(maxX<0) return null;
+  return {x:minX, y:minY, w:maxX-minX+1, h:maxY-minY+1};
+}
+
+/* fit済みスタンプ画像を任意サイズに再配置 (main/tab用) */
+function fitInto(st, W, H, margin){
+  const c = document.createElement('canvas');
+  c.width=W; c.height=H;
+  const ctx = c.getContext('2d');
+  const srcCtx = st.out.getContext('2d',{willReadFrequently:true});
+  const id = srcCtx.getImageData(0,0,st.out.width,st.out.height);
+  const box = alphaBounds(id, st.out.width, st.out.height);
+  if(box){
+    const s = Math.min((W-margin*2)/box.w, (H-margin*2)/box.h);
+    ctx.imageSmoothingQuality='high';
+    ctx.drawImage(st.out, box.x, box.y, box.w, box.h,
+      (W-box.w*s)/2, (H-box.h*s)/2, box.w*s, box.h*s);
+  }
+  return c;
+}
+
+/* ═══════════════ sheet UI ═══════════════ */
+const sheet = $('#sheet');
+function renderSheet(){
+  sheet.innerHTML = '';
+  if(!stamps.length){
+    sheet.innerHTML = '<div id="emptySheet">まだスタンプがありません。<br>画像を読み込んで分割してみましょう 🐣</div>';
+    return;
+  }
+  stamps.forEach((st,i)=>{
+    const card = document.createElement('div');
+    card.className = 'stamp-card' + (st.id===mainId?' is-main':'');
+    card.innerHTML = `
+      ${st.id===mainId?'<span class="badge-main">メイン画像</span>':''}
+      <div class="stamp-preview"><img alt="スタンプ${i+1}" src="${st.dataUrl}"></div>
+      <div class="stamp-tools">
+        <div class="tool-row">
+          <label class="switch" style="width:auto"><input type="checkbox" data-k="bg" ${st.opts.bg?'checked':''}>背景を透過</label>
+        </div>
+        <div class="tool-row">
+          <label>透過強度</label>
+          <input type="range" min="5" max="120" value="${st.opts.tol}" data-k="tol" ${st.opts.bg?'':'disabled'}>
+          <output>${st.opts.tol}</output>
+        </div>
+        <div class="tool-row">
+          <label>余白</label>
+          <input type="range" min="0" max="60" value="${st.opts.margin}" data-k="margin">
+          <output>${st.opts.margin}</output>
+        </div>
+      </div>
+      <div class="mini-actions">
+        <button class="mini-btn" data-act="main">⭐メイン</button>
+        <button class="mini-btn" data-act="left" ${i===0?'disabled':''}>◀</button>
+        <button class="mini-btn" data-act="right" ${i===stamps.length-1?'disabled':''}>▶</button>
+        <button class="mini-btn danger" data-act="del">削除</button>
+      </div>
+      <div class="stamp-size">${String(i+1).padStart(2,'0')}.png ・ 370×320 ・ 約${(st.bytes/1024).toFixed(0)}KB</div>
+    `;
+    // events
+    card.querySelectorAll('input[type=range]').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        st.opts[inp.dataset.k] = +inp.value;
+        inp.nextElementSibling.textContent = inp.value;
+        debounceProcess(st, card);
+      });
+    });
+    card.querySelector('input[data-k=bg]').addEventListener('change', e=>{
+      st.opts.bg = e.target.checked;
+      card.querySelector('input[data-k=tol]').disabled = !st.opts.bg;
+      debounceProcess(st, card, 0);
+    });
+    card.querySelectorAll('.mini-btn').forEach(b=>{
+      b.addEventListener('click', ()=>{
+        const act = b.dataset.act;
+        const idx = stamps.indexOf(st);
+        if(act==='del'){ stamps.splice(idx,1); if(mainId===st.id) mainId = stamps[0]?.id ?? null; }
+        if(act==='main'){ mainId = st.id; }
+        if(act==='left' && idx>0){ [stamps[idx-1],stamps[idx]]=[stamps[idx],stamps[idx-1]]; }
+        if(act==='right' && idx<stamps.length-1){ [stamps[idx+1],stamps[idx]]=[stamps[idx],stamps[idx+1]]; }
+        renderSheet(); refreshExport();
+      });
+    });
+    sheet.appendChild(card);
+  });
+}
+
+const timers = new Map();
+function debounceProcess(st, card, delay=180){
+  clearTimeout(timers.get(st.id));
+  timers.set(st.id, setTimeout(()=>{
+    processStamp(st);
+    card.querySelector('.stamp-preview img').src = st.dataUrl;
+    const i = stamps.indexOf(st);
+    card.querySelector('.stamp-size').textContent =
+      `${String(i+1).padStart(2,'0')}.png ・ 370×320 ・ 約${(st.bytes/1024).toFixed(0)}KB`;
+    refreshExport();
+  }, delay));
+}
+
+/* ═══════════════ export & checklist ═══════════════ */
+function refreshExport(){
+  // main / tab preview
+  const mainSt = stamps.find(s=>s.id===mainId);
+  const mainPv = $('#mainPv'), tabPv = $('#tabPv');
+  mainPv.innerHTML=''; tabPv.innerHTML='';
+  if(mainSt && mainSt.out){
+    const m = fitInto(mainSt, SPEC.main.w, SPEC.main.h, 8);
+    const t = fitInto(mainSt, SPEC.tab.w, SPEC.tab.h, 4);
+    const mi = new Image(); mi.src = m.toDataURL(); mainPv.appendChild(mi);
+    const ti = new Image(); ti.src = t.toDataURL(); tabPv.appendChild(ti);
+  }
+  // checklist
+  const n = stamps.length;
+  const totalKB = stamps.reduce((a,s)=>a+s.bytes,0)/1024;
+  const overs = stamps.filter(s=>s.bytes > 1024*1024).length;
+  const items = [
+    [n>0, `スタンプ画像:${n}個`],
+    [VALID_COUNTS.includes(n),
+      VALID_COUNTS.includes(n) ? `セット個数OK(${n}個)` :
+      `セット個数は 8 / 16 / 24 / 32 / 40 個(現在${n}個 → あと${nearestNeed(n)}個)`,
+      !VALID_COUNTS.includes(n) && n>0 ? 'warn' : null],
+    [!!mainSt, 'メイン画像が選択済み(⭐で変更できます)'],
+    [overs===0, overs===0 ? '各ファイル1MB以下' : `${overs}個のファイルが1MBを超えています`],
+    [totalKB/1024 < 20, `合計サイズ 約${(totalKB/1024).toFixed(1)}MB(上限20MB)`],
+  ];
+  $('#checklist').innerHTML = items.map(([ok,label,warn])=>`
+    <div class="check-item ${warn==='warn'?'warn2':(ok?'ok':'ng')}">
+      <span class="mark">${warn==='warn'?'!':(ok?'✓':'×')}</span><span>${label}</span>
+    </div>`).join('');
+  $('#exportBtn').disabled = !(n>0 && mainSt);
+}
+function nearestNeed(n){
+  const next = VALID_COUNTS.find(v=>v>=n) ?? 40;
+  return Math.abs(next-n);
+}
+
+$('#exportBtn').addEventListener('click', async ()=>{
+  const mainSt = stamps.find(s=>s.id===mainId);
+  if(!mainSt) return;
+  const status = $('#zipStatus');
+  status.textContent = 'ZIPを作成中…';
+  try{
+    const zip = new JSZip();
+    const toBlob = c => new Promise(res=>c.toBlob(res,'image/png'));
+    zip.file('main.png', await toBlob(fitInto(mainSt, SPEC.main.w, SPEC.main.h, 8)));
+    zip.file('tab.png',  await toBlob(fitInto(mainSt, SPEC.tab.w,  SPEC.tab.h,  4)));
+    for(let i=0;i<stamps.length;i++){
+      zip.file(String(i+1).padStart(2,'0')+'.png', await toBlob(stamps[i].out));
+    }
+    const blob = await zip.generateAsync({type:'blob'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'line_stamps.zip';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    status.textContent = `完了!${stamps.length}個+main/tab を書き出しました(${(blob.size/1024/1024).toFixed(1)}MB)`;
+  }catch(err){
+    status.textContent = 'ZIPの作成に失敗しました。画像サイズを小さくして再試行してください。';
+    console.error(err);
+  }
+});
+
+refreshExport();
+</script>
+</body>
+</html>
