@@ -123,61 +123,137 @@ section.card{
 .btn:focus-visible,.stepper button:focus-visible,#dropzone:focus-visible{outline:3px solid #7FD9A6;outline-offset:2px}
 
 /* ── stamp sheet (signature) ──────────── */
+.bgcheck-row{
+  display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;
+  font-size:.8rem;color:var(--ink-soft);font-weight:700;
+}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{
+  border:none;background:#F4F8F4;cursor:pointer;padding:6px 14px;
+  font-size:.8rem;font-weight:700;color:var(--ink-soft);
+  font-family:"Noto Sans JP",sans-serif;border-right:1px solid var(--line);
+}
+.seg button:last-child{border-right:none}
+.seg button.active{background:var(--ink);color:#fff}
+.seg button:hover:not(.active){background:#E6F3EA}
+
+.subhead{
+  font-family:"Zen Maru Gothic",sans-serif;font-size:.95rem;font-weight:900;
+  margin:0 0 12px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+}
+.subhead-hint{font-family:"Noto Sans JP",sans-serif;font-size:.74rem;font-weight:500;color:var(--ink-soft)}
+
+/* 左:一覧 / 右:編集 の2分割 */
+.editor-split{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+.list-pane{flex:1 1 380px;min-width:300px}
+.editor-pane{flex:1 1 460px;min-width:320px;position:sticky;top:12px}
+
+/* スタンプ一覧(コンパクト・1行4枚のサムネイル) */
 #sheet{
-  display:grid;gap:18px;
-  grid-template-columns:repeat(auto-fill,minmax(215px,1fr));
+  display:grid;gap:10px;
+  grid-template-columns:repeat(4,1fr);
 }
-.stamp-card{
-  background:#fff;border:1px solid var(--line);border-radius:16px;
-  padding:12px;display:grid;gap:10px;position:relative;
+.thumb-card{
+  background:#fff;border:1px solid var(--line);border-radius:12px;
+  padding:6px;display:flex;flex-direction:column;gap:5px;position:relative;
+  cursor:grab;transition:opacity .15s,box-shadow .15s;min-width:0;
 }
-.stamp-card.is-main{border:2px solid var(--sun)}
-.badge-main{
-  position:absolute;top:-11px;left:12px;background:var(--sun);color:#5A4300;
-  font-size:.7rem;font-weight:900;border-radius:999px;padding:2px 10px;
-  font-family:"Zen Maru Gothic",sans-serif;z-index:2;
+.thumb-card.is-editing{border-color:#3B8FE0;box-shadow:0 0 0 2px #3B8FE0 inset}
+.thumb-card.dragging{opacity:.4;cursor:grabbing}
+.thumb-card.drag-over{box-shadow:0 0 0 2px var(--green) inset}
+.thumb-star{
+  position:absolute;top:5px;right:5px;z-index:2;
+  width:22px;height:22px;border-radius:50%;
+  background:rgba(255,255,255,.92);border:1px solid var(--line);
+  display:grid;place-items:center;font-size:.8rem;cursor:pointer;color:#C3CCC7;
+  line-height:1;padding:0;
 }
+.thumb-star:hover{background:#fff}
+.thumb-star.is-main{color:#946A00;background:var(--sun);border-color:var(--sun)}
+.thumb-label{font-size:.66rem;color:var(--ink-soft);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stamp-preview{
-  aspect-ratio:370/320;border-radius:10px;overflow:hidden;
+  aspect-ratio:370/320;border-radius:8px;overflow:hidden;
   background:
     conic-gradient(var(--check1) 90deg,var(--check2) 90deg 180deg,var(--check1) 180deg 270deg,var(--check2) 270deg);
-  background-size:20px 20px;
+  background-size:16px 16px;
   display:grid;place-items:center;
   border:1px solid var(--line);
+  position:relative;width:100%;
 }
-.stamp-preview img{max-width:100%;max-height:100%;display:block;cursor:crosshair}
-.spot-hint{
-  display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
-  font-size:.7rem;color:var(--ink-soft);
+.stamp-preview.bgc-white{background:#fff}
+.stamp-preview.bgc-black{background:#1A1A1A}
+.stamp-preview img{max-width:100%;max-height:100%;display:block;pointer-events:none}
+
+/* 編集パネル:画像を上部に横幅いっぱいで表示し、操作はその下に */
+#editorPanel{min-height:40px}
+.editor-card{
+  background:#F7FAF7;border:1px solid var(--line);border-radius:16px;
+  padding:18px;display:flex;flex-direction:column;gap:16px;
 }
+.editor-preview{width:100%;cursor:pointer}
+.editor-preview .stamp-preview{background-size:22px 22px}
+.editor-controls{display:grid;gap:14px;min-width:0}
+.editor-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.badge-main{
+  background:var(--sun);color:#5A4300;
+  font-size:.72rem;font-weight:900;border-radius:999px;padding:3px 10px;
+  font-family:"Zen Maru Gothic",sans-serif;flex:none;white-space:nowrap;
+}
+.tool-toggle{display:flex;gap:6px;min-width:0}
+.tool-toggle button{
+  flex:none;min-width:0;border:1px solid var(--line);background:#fff;border-radius:9px;
+  padding:6px 12px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--ink-soft);
+  font-family:"Noto Sans JP",sans-serif;
+}
+.tool-toggle button.active.erase{background:var(--coral);color:#fff;border-color:var(--coral)}
+.tool-toggle button.active.restore{background:#3B8FE0;color:#fff;border-color:#3B8FE0}
+.editor-hint{font-size:.76rem;color:var(--ink-soft)}
 .spot-undo{
-  border:1px solid var(--line);background:#F7FAF7;border-radius:8px;
-  padding:2px 8px;font-size:.7rem;font-weight:700;color:var(--coral);cursor:pointer;
+  border:1px solid var(--line);background:#fff;border-radius:8px;
+  padding:5px 10px;font-size:.76rem;font-weight:700;color:var(--coral);cursor:pointer;
   font-family:"Noto Sans JP",sans-serif;flex:none;
 }
-.spot-undo:hover{background:#FDEDEB}
-.stamp-tools{display:grid;gap:8px;font-size:.78rem}
-.tool-row{display:flex;align-items:center;gap:8px}
-.tool-row label{flex:none;font-weight:700;color:var(--ink-soft);width:4.5em}
-.tool-row input[type=range]{flex:1;accent-color:var(--green)}
+.spot-undo:hover:not(:disabled){background:#FDEDEB}
+.spot-undo:disabled{opacity:.35;cursor:default;color:var(--ink-soft)}
+.stamp-tools{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:.85rem;min-width:0}
+.tool-row{display:flex;align-items:center;gap:8px;min-width:0;flex:1 1 220px}
+.tool-row label{flex:none;font-weight:700;color:var(--ink-soft);width:5em}
+.tool-row input[type=range]{flex:1;min-width:0;accent-color:var(--green)}
 .tool-row output{width:2.6em;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
-.switch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;color:var(--ink-soft)}
+.switch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;color:var(--ink-soft);flex:none}
 .switch input{accent-color:var(--green);width:16px;height:16px}
-.mini-actions{display:flex;gap:6px;flex-wrap:wrap}
+.mini-actions{display:flex;gap:8px;flex-wrap:wrap;min-width:0;align-items:center}
 .mini-btn{
-  flex:1;border:1px solid var(--line);background:#F7FAF7;border-radius:9px;
-  padding:6px 4px;font-size:.74rem;font-weight:700;cursor:pointer;color:var(--ink);
-  font-family:"Noto Sans JP",sans-serif;min-width:52px;
+  flex:none;min-width:0;border:1px solid var(--line);background:#fff;border-radius:9px;
+  padding:7px 14px;font-size:.8rem;font-weight:700;cursor:pointer;color:var(--ink);
+  font-family:"Noto Sans JP",sans-serif;
 }
 .mini-btn:hover{background:#EAF6EE}
 .mini-btn.danger{color:var(--coral)}
-.stamp-size{font-size:.7rem;color:var(--ink-soft);text-align:center}
+.stamp-size{font-size:.76rem;color:var(--ink-soft)}
+#editorEmpty{
+  border:2px dashed var(--line);border-radius:14px;padding:30px;
+  text-align:center;color:var(--ink-soft);
+  font-family:"Zen Maru Gothic",sans-serif;font-weight:700;
+}
 
 #emptySheet{
-  border:2px dashed var(--line);border-radius:14px;padding:40px;
+  border:2px dashed var(--line);border-radius:14px;padding:30px 16px;
   text-align:center;color:var(--ink-soft);grid-column:1/-1;
   font-family:"Zen Maru Gothic",sans-serif;font-weight:700;
 }
+
+@media (max-width:900px){
+  .editor-pane{position:static}
+}
+@media (max-width:700px){
+  .list-pane{min-width:0}
+  .editor-pane{min-width:0}
+}
+@media (max-width:520px){
+  #sheet{grid-template-columns:repeat(2,1fr)}
+}
+
 
 /* ── export ───────────────────────────── */
 .export-flex{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
@@ -195,6 +271,8 @@ section.card{
   background:conic-gradient(var(--check1) 90deg,var(--check2) 90deg 180deg,var(--check1) 180deg 270deg,var(--check2) 270deg);
   background-size:18px 18px;display:grid;place-items:center;margin-bottom:4px;
 }
+.pv .box.bgc-white{background:#fff}
+.pv .box.bgc-black{background:#1A1A1A}
 .pv .box img{max-width:85%;max-height:85%}
 #zipStatus{font-size:.82rem;color:var(--ink-soft);min-height:1.4em}
 
@@ -263,8 +341,26 @@ section.card{
     <h2>スタンプを整える</h2>
     <div class="hint">各コマ:背景透過 → 自動トリミング → 余白付き370×320に整形</div>
   </div>
-  <div id="sheet">
-    <div id="emptySheet">まだスタンプがありません。<br>画像を読み込んで分割してみましょう 🐣</div>
+  <div class="bgcheck-row">
+    <span>プレビュー背景で透過チェック:</span>
+    <div class="seg" id="bgToggle">
+      <button data-bg="checker" class="active">市松(標準)</button>
+      <button data-bg="white">白背景</button>
+      <button data-bg="black">黒背景</button>
+    </div>
+  </div>
+
+  <div class="editor-split">
+    <div class="list-pane">
+      <h3 class="subhead">スタンプ一覧 <span class="subhead-hint">ドラッグで並び替え・クリックで編集・⭐でメイン指定</span></h3>
+      <div id="sheet">
+        <div id="emptySheet">まだスタンプがありません。<br>画像を読み込んで分割してみましょう 🐣</div>
+      </div>
+    </div>
+    <div class="editor-pane">
+      <h3 class="subhead">編集</h3>
+      <div id="editorPanel"></div>
+    </div>
   </div>
 </section>
 
@@ -304,7 +400,9 @@ let linesX = [0.5];            // 縦線(列の境界)
 let linesY = [0.5];            // 横線(行の境界)
 let stamps = [];               // {id, src:canvas, opts:{bg,tol,margin}, out:canvas, bytes}
 let mainId = null;
+let editingId = null;  // 編集パネルに表示中のスタンプID
 let uid = 0;
+let previewBg = 'checker';   // 'checker' | 'white' | 'black' — 透過チェック用のプレビュー背景
 
 const $ = s => document.querySelector(s);
 
@@ -509,7 +607,7 @@ $('#addWhole').addEventListener('click', ()=>{
 });
 function advanceQueue(){
   if(pendingImages.length){ setSourceImage(pendingImages.shift()); updateSplitHint(); }
-  renderSheet(); refreshExport();
+  renderSheet(); renderEditor(); refreshExport();
 }
 
 /* ═══════════════ stamp creation ═══════════════ */
@@ -521,7 +619,7 @@ function addStampFromRegion(img, sx, sy, sw, sh){
   c.width = Math.max(2, Math.round(sw*sc2));
   c.height = Math.max(2, Math.round(sh*sc2));
   c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
-  const st = { id:++uid, src:c, opts:{bg:true, tol:38, margin:10}, spots:[], out:null, bytes:0 };
+  const st = { id:++uid, src:c, opts:{bg:true, tol:38, margin:10}, tool:'erase', strokes:[], out:null, bytes:0 };
   stamps.push(st);
   if(mainId===null) mainId = st.id;
   processStamp(st);
@@ -547,19 +645,22 @@ function processStamp(st){
   const out = document.createElement('canvas');
   out.width = SPEC.stamp.w; out.height = SPEC.stamp.h;
   const octx = out.getContext('2d', {willReadFrequently:true});
+  let contentRect = null;
   if(box){
     const availW = SPEC.stamp.w - margin*2, availH = SPEC.stamp.h - margin*2;
     const s = Math.min(availW/box.w, availH/box.h);
     const dw = box.w*s, dh = box.h*s;
+    const dx = (SPEC.stamp.w-dw)/2, dy = (SPEC.stamp.h-dh)/2;
     octx.imageSmoothingQuality = 'high';
-    octx.drawImage(work, box.x, box.y, box.w, box.h,
-      (SPEC.stamp.w-dw)/2, (SPEC.stamp.h-dh)/2, dw, dh);
+    octx.drawImage(work, box.x, box.y, box.w, box.h, dx, dy, dw, dh);
+    contentRect = {x:dx, y:dy, w:dw, h:dh};
   }
+  st.contentRect = contentRect;
 
-  // クリックで指定した消し残し箇所をスポット的に透過
-  if(st.spots.length){
+  // クリックで指定した「消す/戻す」を適用。復元は実際に絵柄がある範囲内だけに制限する
+  if(st.strokes.length){
     const outId = octx.getImageData(0,0,out.width,out.height);
-    st.spots.forEach(sp => floodFillFromPoint(outId, out.width, out.height, sp.x, sp.y, tol));
+    st.strokes.forEach(click => applyClick(outId.data, out.width, out.height, click, contentRect, tol));
     featherAlpha(outId.data, out.width, out.height);
     octx.putImageData(outId,0,0);
   }
@@ -618,34 +719,64 @@ function featherAlpha(d, w, h){
   }
 }
 
-/* クリックした1点の色を起点に、似た色でつながった範囲だけを透過する
-   (端からの一括透過では取り切れない、内側に残った消し残し用) */
-function floodFillFromPoint(id, w, h, sx, sy, tol){
-  const d = id.data;
-  sx = Math.min(w-1, Math.max(0, sx|0));
-  sy = Math.min(h-1, Math.max(0, sy|0));
-  const start = sy*w+sx;
+/* クリックした地点を起点に「消す」または「戻す」を適用する。
+   円形の範囲指定ではなく、連結した領域(同色でつながった部分/透明でつながった穴)を
+   まるごと対象にする — 以前のクリック判定と同じ考え方。 */
+function applyClick(d, w, h, click, contentRect, tol){
+  const { tool, x, y } = click;
+  if(tool==='erase') smartErase(d, w, h, x, y, tol);
+  else smartRestore(d, w, h, x, y, contentRect);
+}
+
+/* クリックした地点の色を起点に、似た色でつながっている範囲をまるごと透過する。
+   線や輪郭、色の違いに当たったところで自然に止まる(距離による制限はしない)。 */
+function smartErase(d, w, h, cx, cy, tol){
+  cx = Math.min(w-1, Math.max(0, Math.round(cx)));
+  cy = Math.min(h-1, Math.max(0, Math.round(cy)));
+  const start = cy*w+cx;
   if(d[start*4+3] === 0) return; // すでに透明ならなにもしない
   const r=d[start*4], g=d[start*4+1], b=d[start*4+2];
   const tol2 = tol*tol*3;
-  const match = i=>{
-    const dr=d[i]-r, dg=d[i+1]-g, db=d[i+2]-b;
-    return dr*dr+dg*dg+db*db <= tol2;
-  };
   const visited = new Uint8Array(w*h);
-  const queue = [start];
-  while(queue.length){
-    const p = queue.pop();
+  const stack = [cx, cy];
+  while(stack.length){
+    const y = stack.pop(), x = stack.pop();
+    if(x<0||y<0||x>=w||y>=h) continue;
+    const p = y*w+x;
     if(visited[p]) continue;
     visited[p]=1;
     if(d[p*4+3]===0) continue;
-    if(!match(p*4)) continue;
+    const dr=d[p*4]-r, dg=d[p*4+1]-g, db=d[p*4+2]-b;
+    if(dr*dr+dg*dg+db*db > tol2) continue; // 色が違いすぎたらそこで止める
     d[p*4+3]=0;
-    const x=p%w, y=(p/w)|0;
-    if(x>0) queue.push(p-1);
-    if(x<w-1) queue.push(p+1);
-    if(y>0) queue.push(p-w);
-    if(y<h-1) queue.push(p+w);
+    stack.push(x-1,y, x+1,y, x,y-1, x,y+1);
+  }
+}
+
+/* クリックした地点が透明なら、そこから「透明でつながっている穴」をまるごと復元する。
+   絵柄が実際にある範囲(contentRect)の外側には広げず、余白が塗られる事故を防ぐ。 */
+function smartRestore(d, w, h, cx, cy, contentRect){
+  cx = Math.min(w-1, Math.max(0, Math.round(cx)));
+  cy = Math.min(h-1, Math.max(0, Math.round(cy)));
+  const start = cy*w+cx;
+  if(d[start*4+3] !== 0) return; // すでに不透明ならなにもしない
+  const inClip = (x,y)=>{
+    if(!contentRect) return true;
+    return x>=contentRect.x-1 && x<=contentRect.x+contentRect.w+1 &&
+           y>=contentRect.y-1 && y<=contentRect.y+contentRect.h+1;
+  };
+  const visited = new Uint8Array(w*h);
+  const stack = [cx, cy];
+  while(stack.length){
+    const y = stack.pop(), x = stack.pop();
+    if(x<0||y<0||x>=w||y>=h) continue;
+    const p = y*w+x;
+    if(visited[p]) continue;
+    visited[p]=1;
+    if(d[p*4+3]!==0) continue;      // 不透明ならそこで止める(穴の境界)
+    if(!inClip(x,y)) continue;      // 絵柄の外側には広げない
+    d[p*4+3]=255;
+    stack.push(x-1,y, x+1,y, x,y-1, x,y+1);
   }
 }
 
@@ -683,100 +814,194 @@ function fitInto(st, W, H, margin){
 
 /* ═══════════════ sheet UI ═══════════════ */
 const sheet = $('#sheet');
+let dragSrcIndex = null;
+
+/* ─ 並び替えグリッド:コンパクトなサムネイル。クリックで下の編集パネルに読み込む ─ */
 function renderSheet(){
   sheet.innerHTML = '';
   if(!stamps.length){
     sheet.innerHTML = '<div id="emptySheet">まだスタンプがありません。<br>画像を読み込んで分割してみましょう 🐣</div>';
     return;
   }
+  if(editingId===null || !stamps.some(s=>s.id===editingId)){
+    editingId = stamps[0].id;
+  }
   stamps.forEach((st,i)=>{
     const card = document.createElement('div');
-    card.className = 'stamp-card' + (st.id===mainId?' is-main':'');
+    card.className = 'thumb-card'
+      + (st.id===editingId?' is-editing':'');
+    card.draggable = true;
     card.innerHTML = `
-      ${st.id===mainId?'<span class="badge-main">メイン画像</span>':''}
-      <div class="stamp-preview"><img alt="スタンプ${i+1}" src="${st.dataUrl}" title="消し残しの背景をクリックすると透過します"></div>
-      <div class="spot-hint">
-        <span>🖱️ 消し残しをクリックで透過</span>
-        ${st.spots.length ? `<button class="spot-undo" data-act="undoSpot">元に戻す(${st.spots.length})</button>` : ''}
+      <div class="stamp-preview bgc-${previewBg}">
+        <img alt="スタンプ${i+1}" src="${st.dataUrl}">
+        <button class="thumb-star ${st.id===mainId?'is-main':''}" title="メイン画像にする">⭐</button>
       </div>
-      <div class="stamp-tools">
-        <div class="tool-row">
-          <label class="switch" style="width:auto"><input type="checkbox" data-k="bg" ${st.opts.bg?'checked':''}>背景を透過</label>
-        </div>
-        <div class="tool-row">
-          <label>透過強度</label>
-          <input type="range" min="5" max="120" value="${st.opts.tol}" data-k="tol" ${st.opts.bg?'':'disabled'}>
-          <output>${st.opts.tol}</output>
-        </div>
-        <div class="tool-row">
-          <label>余白</label>
-          <input type="range" min="0" max="60" value="${st.opts.margin}" data-k="margin">
-          <output>${st.opts.margin}</output>
-        </div>
-      </div>
-      <div class="mini-actions">
-        <button class="mini-btn" data-act="main">⭐メイン</button>
-        <button class="mini-btn" data-act="left" ${i===0?'disabled':''}>◀</button>
-        <button class="mini-btn" data-act="right" ${i===stamps.length-1?'disabled':''}>▶</button>
-        <button class="mini-btn danger" data-act="del">削除</button>
-      </div>
-      <div class="stamp-size">${String(i+1).padStart(2,'0')}.png ・ 370×320 ・ 約${(st.bytes/1024).toFixed(0)}KB</div>
+      <div class="thumb-label">${String(i+1).padStart(2,'0')}.png</div>
     `;
-    // events
-    card.querySelectorAll('input[type=range]').forEach(inp=>{
-      inp.addEventListener('input', ()=>{
-        st.opts[inp.dataset.k] = +inp.value;
-        inp.nextElementSibling.textContent = inp.value;
-        debounceProcess(st, card);
-      });
+    // クリックで編集パネルへ(⭐ボタンのクリックは除く)
+    card.addEventListener('click', e=>{
+      if(e.target.closest('.thumb-star')) return;
+      editingId = st.id;
+      renderSheet();
+      renderEditor();
     });
-    card.querySelector('input[data-k=bg]').addEventListener('change', e=>{
-      st.opts.bg = e.target.checked;
-      card.querySelector('input[data-k=tol]').disabled = !st.opts.bg;
-      debounceProcess(st, card, 0);
+    card.querySelector('.thumb-star').addEventListener('click', e=>{
+      e.stopPropagation();
+      mainId = st.id;
+      renderSheet(); renderEditor(); refreshExport();
     });
-    card.querySelectorAll('.mini-btn').forEach(b=>{
-      b.addEventListener('click', ()=>{
-        const act = b.dataset.act;
-        const idx = stamps.indexOf(st);
-        if(act==='del'){ stamps.splice(idx,1); if(mainId===st.id) mainId = stamps[0]?.id ?? null; }
-        if(act==='main'){ mainId = st.id; }
-        if(act==='left' && idx>0){ [stamps[idx-1],stamps[idx]]=[stamps[idx],stamps[idx-1]]; }
-        if(act==='right' && idx<stamps.length-1){ [stamps[idx+1],stamps[idx]]=[stamps[idx],stamps[idx+1]]; }
-        renderSheet(); refreshExport();
-      });
+    // 並び替え(ドラッグ&ドロップ)
+    card.addEventListener('dragstart', e=>{
+      dragSrcIndex = stamps.indexOf(st);
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(dragSrcIndex));
+      requestAnimationFrame(()=>card.classList.add('dragging'));
     });
-    // 画像クリックで、その周辺の消し残しをスポット的に透過
-    card.querySelector('.stamp-preview img').addEventListener('click', e=>{
-      const img = e.currentTarget;
-      const rect = img.getBoundingClientRect();
-      const ox = Math.round((e.clientX-rect.left) * (SPEC.stamp.w/rect.width));
-      const oy = Math.round((e.clientY-rect.top)  * (SPEC.stamp.h/rect.height));
-      st.spots.push({x:ox, y:oy});
-      processStamp(st);
+    card.addEventListener('dragend', ()=>{
+      card.classList.remove('dragging');
+      sheet.querySelectorAll('.thumb-card').forEach(c=>c.classList.remove('drag-over'));
+      dragSrcIndex = null;
+    });
+    card.addEventListener('dragover', e=>{
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      card.classList.add('drag-over');
+    });
+    card.addEventListener('dragleave', ()=>{ card.classList.remove('drag-over'); });
+    card.addEventListener('drop', e=>{
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      const dstIdx = stamps.indexOf(st);
+      if(dragSrcIndex===null || dragSrcIndex===dstIdx) return;
+      const [moved] = stamps.splice(dragSrcIndex,1);
+      stamps.splice(dstIdx,0,moved);
+      dragSrcIndex = null;
       renderSheet(); refreshExport();
     });
-    const undoBtn = card.querySelector('.spot-undo');
-    if(undoBtn){
-      undoBtn.addEventListener('click', ()=>{
-        st.spots.pop();
-        processStamp(st);
-        renderSheet(); refreshExport();
-      });
-    }
     sheet.appendChild(card);
   });
 }
 
-const timers = new Map();
-function debounceProcess(st, card, delay=180){
-  clearTimeout(timers.get(st.id));
-  timers.set(st.id, setTimeout(()=>{
+/* ─ 編集パネル:選択中の1枚だけを大きく表示して編集する ─ */
+const editorPanel = $('#editorPanel');
+function renderEditor(){
+  const st = stamps.find(s=>s.id===editingId);
+  if(!st){
+    editorPanel.innerHTML = '<div id="editorEmpty">編集するスタンプを上のグリッドから選んでください</div>';
+    return;
+  }
+  const i = stamps.indexOf(st);
+  editorPanel.innerHTML = `
+    <div class="editor-card">
+      <div class="editor-preview stamp-preview bgc-${previewBg}" title="クリックで${st.tool==='erase'?'透過':'復元'}">
+        <img alt="編集中のスタンプ" src="${st.dataUrl}">
+      </div>
+      <div class="editor-controls">
+        <div class="editor-top">
+          ${st.id===mainId?'<span class="badge-main">メイン画像</span>':''}
+          <div class="tool-toggle">
+            <button data-tool="erase" class="${st.tool==='erase'?'active erase':''}">🧽 消す</button>
+            <button data-tool="restore" class="${st.tool==='restore'?'active restore':''}">🖌 戻す</button>
+          </div>
+          <button class="spot-undo" data-act="undoSpot" ${st.strokes.length?'':'disabled'}>元に戻す${st.strokes.length?`(${st.strokes.length})`:''}</button>
+        </div>
+        <div class="editor-hint">画像をクリックすると、同色/輪郭でつながった範囲をまとめて${st.tool==='erase'?'透過':'復元'}します</div>
+        <div class="stamp-tools">
+          <label class="switch"><input type="checkbox" data-k="bg" ${st.opts.bg?'checked':''}>背景を透過</label>
+          <div class="tool-row">
+            <label>透過強度</label>
+            <input type="range" min="5" max="120" value="${st.opts.tol}" data-k="tol" ${st.opts.bg?'':'disabled'}>
+            <output>${st.opts.tol}</output>
+          </div>
+          <div class="tool-row">
+            <label>余白</label>
+            <input type="range" min="0" max="60" value="${st.opts.margin}" data-k="margin">
+            <output>${st.opts.margin}</output>
+          </div>
+        </div>
+        <div class="mini-actions">
+          <button class="mini-btn" data-act="main">⭐メインにする</button>
+          <button class="mini-btn danger" data-act="del">このスタンプを削除</button>
+          <span class="stamp-size">${String(i+1).padStart(2,'0')}.png ・ 370×320 ・ 約${(st.bytes/1024).toFixed(0)}KB</span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  editorPanel.querySelectorAll('input[type=range]').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      st.opts[inp.dataset.k] = +inp.value;
+      inp.nextElementSibling.textContent = inp.value;
+      debounceProcessEditor(st);
+    });
+  });
+  editorPanel.querySelector('input[data-k=bg]').addEventListener('change', e=>{
+    st.opts.bg = e.target.checked;
+    editorPanel.querySelector('input[data-k=tol]').disabled = !st.opts.bg;
+    debounceProcessEditor(st, 0);
+  });
+  editorPanel.querySelectorAll('.tool-toggle button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      st.tool = b.dataset.tool;
+      editorPanel.querySelectorAll('.tool-toggle button').forEach(x=>x.classList.remove('active','erase','restore'));
+      b.classList.add('active', st.tool);
+      editorPanel.querySelector('.editor-preview').title = `クリックで${st.tool==='erase'?'透過':'復元'}`;
+      editorPanel.querySelector('.editor-hint').textContent =
+        `画像をクリックすると、同色/輪郭でつながった範囲をまとめて${st.tool==='erase'?'透過':'復元'}します`;
+    });
+  });
+  editorPanel.querySelector('.editor-preview').addEventListener('click', e=>{
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX-rect.left) * (SPEC.stamp.w/rect.width);
+    const y = (e.clientY-rect.top)  * (SPEC.stamp.h/rect.height);
+    st.strokes.push({ tool:st.tool, x, y });
     processStamp(st);
-    card.querySelector('.stamp-preview img').src = st.dataUrl;
-    const i = stamps.indexOf(st);
-    card.querySelector('.stamp-size').textContent =
-      `${String(i+1).padStart(2,'0')}.png ・ 370×320 ・ 約${(st.bytes/1024).toFixed(0)}KB`;
+    renderEditor();
+    updateThumbImage(st);
+    refreshExport();
+  });
+  editorPanel.querySelector('.spot-undo').addEventListener('click', ()=>{
+    st.strokes.pop();
+    processStamp(st);
+    renderEditor();
+    updateThumbImage(st);
+    refreshExport();
+  });
+  editorPanel.querySelectorAll('.mini-btn').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const act = b.dataset.act;
+      const idx = stamps.indexOf(st);
+      if(act==='del'){
+        stamps.splice(idx,1);
+        if(mainId===st.id) mainId = stamps[0]?.id ?? null;
+        editingId = stamps[0]?.id ?? null;
+      }
+      if(act==='main'){ mainId = st.id; }
+      renderSheet(); renderEditor(); refreshExport();
+    });
+  });
+}
+
+/* 編集パネルでの変更をグリッド側のサムネイルにも即反映する(グリッド全体は作り直さない) */
+function updateThumbImage(st){
+  const idx = stamps.indexOf(st);
+  const thumb = sheet.children[idx];
+  if(thumb) thumb.querySelector('.stamp-preview img').src = st.dataUrl;
+}
+
+const editorTimers = new Map();
+function debounceProcessEditor(st, delay=180){
+  clearTimeout(editorTimers.get(st.id));
+  editorTimers.set(st.id, setTimeout(()=>{
+    processStamp(st);
+    const img = editorPanel.querySelector('.editor-preview img');
+    if(img) img.src = st.dataUrl;
+    const sizeEl = editorPanel.querySelector('.stamp-size');
+    if(sizeEl){
+      const i = stamps.indexOf(st);
+      sizeEl.textContent = `${String(i+1).padStart(2,'0')}.png ・ 370×320 ・ 約${(st.bytes/1024).toFixed(0)}KB`;
+    }
+    updateThumbImage(st);
     refreshExport();
   }, delay));
 }
@@ -787,6 +1012,8 @@ function refreshExport(){
   const mainSt = stamps.find(s=>s.id===mainId);
   const mainPv = $('#mainPv'), tabPv = $('#tabPv');
   mainPv.innerHTML=''; tabPv.innerHTML='';
+  mainPv.className = 'box bgc-'+previewBg;
+  tabPv.className  = 'box bgc-'+previewBg;
   if(mainSt && mainSt.out){
     const m = fitInto(mainSt, SPEC.main.w, SPEC.main.h, 8);
     const t = fitInto(mainSt, SPEC.tab.w, SPEC.tab.h, 4);
@@ -844,6 +1071,17 @@ $('#exportBtn').addEventListener('click', async ()=>{
   }
 });
 
+document.querySelectorAll('#bgToggle button').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    previewBg = b.dataset.bg;
+    document.querySelectorAll('#bgToggle button').forEach(x=>x.classList.toggle('active', x===b));
+    renderSheet();
+    renderEditor();
+    refreshExport();
+  });
+});
+
+renderEditor();
 refreshExport();
 </script>
 </body>
